@@ -1,0 +1,9 @@
+string message = "Hello there, world"
+print message
+
+string one = 1
+int five = "5"
+
+for i from one to five+one
+    print i
+done

@@ -1,0 +1,8 @@
+brace_style = "AlwaysNextLine"
+control_brace_style = "AlwaysNextLine"
+imports_layout = "Horizontal"
+newline_style = "Unix"
+group_imports = "StdExternalCrate"
+trailing_semicolon = false
+use_field_init_shorthand = true
+wrap_comments = true
