@@ -188,6 +188,14 @@ impl ops::MulAssign<Variable> for Variable
     }
 }
 
+impl ops::SubAssign<Variable> for Variable
+{
+    fn sub_assign(&mut self, rhs: Variable)
+    {
+        self.set_from_integer(self.as_integer() - rhs.as_integer());
+    }
+}
+
 impl PartialEq<Self> for Variable
 {
     fn eq(&self, rhs: &Self) -> bool

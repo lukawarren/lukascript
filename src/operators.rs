@@ -14,6 +14,7 @@ pub fn operator_char_to_token_type(c: char) -> TokenType
     match c
     {
         '*' => TokenType::Multiply,
+        '-' => TokenType::Minus,
         _ => TokenType::Value
     }
 }
@@ -23,6 +24,7 @@ fn is_token_operator(token_type: &TokenType) -> bool
     match token_type
     {
         TokenType::Multiply => true,
+        TokenType::Minus => true,
         _ => false
     }
 }
@@ -71,15 +73,26 @@ pub fn collect_operators(tokens: &mut Vec<Token>)
             if matches!(tokens[i-1].token_type, TokenType::Value) &&
                 matches!(tokens[i+1].token_type, TokenType::Value)
             {
-                if matches!(tokens[i].token_type, TokenType::Multiply)
-                {
-                    let right_value = tokens.remove(i + 1);
-                    let left_value = tokens.remove(i - 1);
+                let right_value = tokens.remove(i + 1);
+                let left_value = tokens.remove(i - 1);
 
+                if matches!(tokens[i-1].token_type, TokenType::Multiply)
+                {
                     tokens[i - 1] = Token
                     {
                         token_type: TokenType::Value,
                         string: format!("{}*{}", left_value.string, right_value.string)
+                    };
+
+                    break;
+                }
+
+                else if matches!(tokens[i-1].token_type, TokenType::Minus)
+                {
+                    tokens[i - 1] = Token
+                    {
+                        token_type: TokenType::Value,
+                        string: format!("{}-{}", left_value.string, right_value.string)
                     };
 
                     break;
@@ -121,6 +134,11 @@ pub fn evaluate_operator_expression(expression: &Vec<OperatorExpression>) -> Var
                         TokenType::Multiply =>
                         {
                             initial_variable *= variable;
+                        },
+
+                        TokenType::Minus =>
+                        {
+                            initial_variable -= variable;
                         },
 
                         _ => { todo!(); }

@@ -45,7 +45,6 @@ impl State
 
         // Helper "variables"
         let one = Variable { variable_type: VariableType::Integer(1) };
-        self.make_variable_of_type(&String::from("ret"), VariableType::Integer(0));
 
         // Boolean declarations - TODO: fix
         self.make_variable_of_type(&String::from("true"), VariableType::Boolean(true));
@@ -123,8 +122,12 @@ impl State
                             let name = &desired_args[i].0;
                             let variable_type = desired_args[i].1.clone();
 
+                            // Be careful to evaluate the value early, before we make the new one, as if they
+                            // have the same name, we'll accidentally use the new one in any evaluating, as may
+                            // happen in recursive functions.
+                            let value_evaluated_early = self.evaluate_value(&values[i]);
                             self.make_variable_of_type(name, variable_type);
-                            self.set_variable(name, &values[i]);
+                            self.get_variable(name).set(&value_evaluated_early);
                         }
 
                         self.line = found_function.as_ref().unwrap().0;
@@ -167,8 +170,14 @@ impl State
 
                     if line.is_some()
                     {
-                        self.set_variable(&String::from("ret"), value); // TODO: improve   
+                        // Evaluate value early, to have access to the current frame, yet place it on the one above
+                        let eval_value = self.evaluate_value(value);
+
                         self.frames.pop();
+
+                        self.make_variable_of_type(&String::from("ret"), VariableType::Integer(0)); // TODO: fix and do properly
+                        self.get_variable(&String::from("ret")).set(&eval_value);
+                        
                         self.line = line.unwrap();
                     }
                     else { self.error("cannot return outside of a function"); }
@@ -383,6 +392,7 @@ impl State
             }
         }
 
+        self.print_variables();
         self.error(format!("variable \"{}\" does not exist", name).as_str());
     }
 

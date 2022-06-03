@@ -20,7 +20,8 @@ pub enum TokenType
     If,
     Is,
     Not,
-    Multiply
+    Multiply,
+    Minus
 }
 
 #[derive(Debug)]
@@ -113,6 +114,7 @@ fn get_token_from_word(input: &Vec<char>) -> TokenType
         "is" => TokenType::Is,
         "not" => TokenType::Not,
         "*" => TokenType::Multiply,
+        "-" => TokenType::Minus,
         _ => TokenType::Value
     }
 }

@@ -1,23 +1,13 @@
-fn print_numbers
+fn factorial <- int number
 
-    int target = 5 * true
-
-    for i from false to target * 2
-
-        if i is not 0
-            print i
-        done
-
+    if number is 1
+        return 1
     done
+
+    factorial number - 1
+    return number * ret
 
 done
 
-print_numbers
-
-print "Those numbers ran from 1 to 9..."
-
-int six_as_int = 3*2
-string six_as_string = 3*2
-
-print "...and six as an int is..." six_as_int "...and six as a string is..." six_as_string
-
+factorial 5
+print "I got " ret " and it should have been 120"
