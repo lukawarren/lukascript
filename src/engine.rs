@@ -11,6 +11,8 @@ use super::common::error;
 
 use std::collections::HashMap;
 
+type FunctionInfo = (usize, Vec<(String, VariableType)>);
+
 #[derive(Clone)]
 enum Frame
 {
@@ -24,7 +26,7 @@ struct FrameContext
 {
     frame: Frame,
     variables: HashMap<String, Variable>,
-    functions: HashMap<String, usize> // beginning line
+    functions: HashMap<String, FunctionInfo> // beginning line, arguments
 }
 
 #[derive(Default)]
@@ -43,6 +45,7 @@ impl State
 
         // Helper "variables"
         let one = Variable { variable_type: VariableType::Integer(1) };
+        self.make_variable_of_type(&String::from("ret"), VariableType::Integer(0));
 
         // Boolean declarations - TODO: fix
         self.make_variable_of_type(&String::from("true"), VariableType::Boolean(true));
@@ -97,18 +100,34 @@ impl State
                 FunctionCall { function, values } =>
                 {
                     // Check for user-defined functions first, then if that fails, assume it's in-built
-                    let mut found_function = Option::<usize>::default();
+                    let mut found_function = Option::<FunctionInfo>::default();
                     self.for_each_frame(|frame| {
                         if found_function.is_none() && frame.functions.contains_key(function) {
-                            let _ = found_function.insert(*frame.functions.get(function).unwrap());
+                            let _ = found_function.insert(frame.functions.get(function).unwrap().clone());
                         }
                     });
 
                     if found_function.is_some()
                     {
                         self.add_frame(Frame::Function { caller_line: self.line });
-                        self.line = found_function.unwrap();
-                        // TODO: pass arguments
+
+                        // Check argument lengths match
+                        let desired_args = &found_function.as_ref().unwrap().1;
+                        if desired_args.len() != values.len() {
+                            self.error("invalid number of function arguments");
+                        }
+
+                        // Pass arguments
+                        for i in 0..desired_args.len()
+                        {
+                            let name = &desired_args[i].0;
+                            let variable_type = desired_args[i].1.clone();
+
+                            self.make_variable_of_type(name, variable_type);
+                            self.set_variable(name, &values[i]);
+                        }
+
+                        self.line = found_function.as_ref().unwrap().0;
                     }
 
                     // Function not found, assume part of the "standard library"
@@ -124,6 +143,35 @@ impl State
                             self.error("unknown function");
                         }
                     }
+                },
+
+                Return { value } =>
+                {
+                    // Search for function frame (if any)
+                    let mut line = Option::<usize>::default();
+
+                    self.for_each_frame(|f|
+                    {
+                        if line.is_none()
+                        {
+                            match f.frame
+                            {
+                                Frame::Function { caller_line } =>
+                                {
+                                    let _ = line.insert(caller_line);
+                                }
+                                _ => {}
+                            }
+                        }
+                    });
+
+                    if line.is_some()
+                    {
+                        self.set_variable(&String::from("ret"), value); // TODO: improve   
+                        self.frames.pop();
+                        self.line = line.unwrap();
+                    }
+                    else { self.error("cannot return outside of a function"); }
                 },
 
                 Done =>
@@ -167,10 +215,10 @@ impl State
                     }
                 },
 
-                FunctionDeclaration { name, first_line, last_line, .. } =>
+                FunctionDeclaration { name, first_line, last_line, arguments } =>
                 {
                     // Note function then sally on forth
-                    if self.innermost_frame().functions.insert(name.clone(), *first_line).is_some() {
+                    if self.innermost_frame().functions.insert(name.clone(), (*first_line, arguments.clone())).is_some() {
                         self.error("function already declared");
                     }
                     self.line = *last_line;
@@ -242,7 +290,7 @@ impl State
         self.frames.push(FrameContext {
             frame,
             variables: HashMap::<String, Variable>::new(),
-            functions: HashMap::<String, usize>::new()
+            functions: HashMap::<String, FunctionInfo>::new()
         });
     }
 
@@ -340,16 +388,8 @@ impl State
 
     fn set_variable(&mut self, name: &String, value: &String)
     {
-        let len = self.frames.len();
         let evaluated = self.evaluate_value(value);
-
-        if self.frames[len-1].variables.contains_key(name)
-        {
-            self.frames[len-1].variables.get_mut(name).unwrap().set(&evaluated);
-        }
-        else {
-            self.error("variable does not exist");
-        }
+        self.get_variable(name).set(&evaluated);
     }
 
     fn make_variable_of_type(&mut self, name: &String, variable_type: VariableType)

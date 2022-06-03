@@ -20,6 +20,7 @@ pub enum Instruction
     // Functions
     FunctionDeclaration { name: String, first_line: usize, last_line: usize, arguments: Vec<(String, VariableType)> },
     FunctionCall { function: String, values: Vec<String> },
+    Return { value: String },
 
     // Variables
     IntDeclaration { name: String, value: String },
@@ -164,6 +165,13 @@ pub fn parse_lines(lines: &Vec<Vec<Token>>) -> Vec<Instruction>
             instructions.push(Instruction::FunctionCall {
                 function: tokens[0].string.clone(),
                 values: next_tokens.clone()
+            });
+        }
+
+        else if tokens_contain_types(&tokens, &vec![Return, Value])
+        {
+            instructions.push(Instruction::Return {
+                value: tokens[1].string.clone()
             });
         }
 

@@ -11,7 +11,9 @@ pub enum TokenType
     Done,
     Function,
     LeftArrow,
+    RightArrow,
     DoublePipe,
+    Return,
     Int,
     Bool,
     Str,
@@ -55,6 +57,7 @@ fn get_tokens_for_line(input: &String) -> Vec<Token>
     let mut inside_string = false;
 
     // The below code will miss out the last word sometimes, so as a simple fix to avoid duplicating code, it's easier to just... add another word :)
+    // TODO: fix
     characters.push(' ');
 
     // March along until we find each new token (which is usually just a single word, but could also be a quote also, hence the roundabout way)
@@ -102,6 +105,7 @@ fn get_token_from_word(input: &Vec<char>) -> TokenType
         "fn" => TokenType::Function,
         "<-" => TokenType::LeftArrow,
         "||" => TokenType::DoublePipe,
+        "return" => TokenType::Return,
         "int" => TokenType::Int,
         "bool" => TokenType::Bool,
         "string" => TokenType::Str,

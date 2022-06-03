@@ -39,6 +39,7 @@ pub struct Variable
     pub variable_type: VariableType
 }
 
+// TODO: allow the comparison of strings, etc. by casting all types to strings
 impl Variable
 {
     pub fn set(&mut self, variable: &Variable)
