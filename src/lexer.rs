@@ -1,4 +1,6 @@
-#[derive(PartialEq,Debug)]
+use super::operators::collect_operators;
+
+#[derive(PartialEq, Debug, Clone)]
 pub enum TokenType
 {
     Value,
@@ -12,7 +14,8 @@ pub enum TokenType
     Bool,
     Str,
     If,
-    Is
+    Is,
+    Multiply
 }
 
 #[derive(Debug)]
@@ -74,6 +77,8 @@ fn get_tokens_for_line(input: &String) -> Vec<Token>
         else { word.push(characters[i]); }
     }
 
+    collect_operators(&mut tokens);
+
     if inside_string {
         println!("Error: unterminated string on line: {}", input);
         std::process::exit(1);
@@ -88,6 +93,7 @@ fn get_token_from_word(input: &Vec<char>, pos: usize, size: usize) -> TokenType
     {
         // Single characters
         '=' => TokenType::Equals,
+        '*' => TokenType::Multiply,
 
         // Multiple characters
         _ =>

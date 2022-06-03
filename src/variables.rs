@@ -10,7 +10,7 @@ pub enum VariableType
     Str(String)
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Variable
 {
     pub variable_type: VariableType
@@ -153,6 +153,14 @@ impl ops::AddAssign<Variable> for Variable
     fn add_assign(&mut self, rhs: Variable)
     {
         self.set_from_integer(self.as_integer() + rhs.as_integer());
+    }
+}
+
+impl ops::MulAssign<Variable> for Variable
+{
+    fn mul_assign(&mut self, rhs: Variable)
+    {
+        self.set_from_integer(self.as_integer() * rhs.as_integer());
     }
 }
 

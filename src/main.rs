@@ -3,6 +3,7 @@ pub mod parser;
 pub mod engine;
 pub mod variables;
 pub mod common;
+pub mod operators;
 
 use std::fs;
 use std::env;
@@ -24,16 +25,12 @@ fn main()
     .collect();
 
     let lexer_output = lexer::tokenise_lines(&lines);
-    let parser_output = parser::parse_lines(&lexer_output);
+    if debug { println!("=== Lexer ===\n{:#?}\n", lexer_output); }
 
-    if debug
-    {
-        println!("{:#?}", lexer_output);
-        println!("{:#?}", parser_output);
-    }
+    let parser_output = parser::parse_lines(&lexer_output);
+    if debug { println!("=== Parser ===\n{:#?}\n", parser_output); }
 
     let mut state = engine::State::default();
     state.execute(parser_output);
-
     if debug { state.print_variables(); }
 }

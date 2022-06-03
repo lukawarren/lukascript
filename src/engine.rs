@@ -2,6 +2,11 @@ use super::parser::Instruction;
 use super::parser::Instruction::*;
 use super::variables::Variable;
 use super::variables::VariableType;
+use super::operators::value_contains_operator;
+use super::operators::is_char_operator;
+use super::operators::operator_char_to_token_type;
+use super::operators::evaluate_operator_expression;
+use super::operators::OperatorExpression;
 use super::common::error;
 
 use std::collections::HashMap;
@@ -39,7 +44,7 @@ impl State
         // Helper "variables"
         let one = Variable { variable_type: VariableType::Integer(1) };
 
-        // Boolean declarations
+        // Boolean declarations - TODO: fix
         self.make_variable_of_type(&String::from("true"), VariableType::Boolean(true));
         self.make_variable_of_type(&String::from("false"), VariableType::Boolean(false));
 
@@ -200,7 +205,7 @@ impl State
         }
     }
 
-    fn error(&self, message: &str)
+    fn error(&self, message: &str) -> !
     {
         error(format!("{} - line {}", message, self.line + 1));
     }
@@ -243,6 +248,48 @@ impl State
 
     fn evaluate_value(&mut self, value: &String) -> Variable
     {
+        // A value may simply be something like "3" or "my_variable_name", but may also contain operators like "+" or "-".
+        // To this end, parse each individual "actual value" (inner value) and combine them with any operators to form an
+        // expression of sorts that can be evaluated separately, containing only numbers and operators. Of course, for values
+        // not containing any operators, this can be skipped.
+
+        if !value_contains_operator(value) { return self.evaluate_inner_value(value) }
+
+        let mut expression = Vec::<OperatorExpression>::new();
+        let mut word = Vec::<char>::new();
+
+        for i in 0..value.len()
+        {
+            let char = value.chars().nth(i).unwrap();
+            let is_operator = is_char_operator(char);
+            word.push(char);
+
+            if is_operator || i == value.len() -1
+            {
+                if i != value.len() - 1 {
+                    word.pop(); // Final character will be the operator, so remove
+                }
+
+                expression.push(OperatorExpression::Variable(
+                    self.evaluate_inner_value(&word.iter().collect())
+                ));
+
+                if is_operator
+                {
+                    expression.push(OperatorExpression::Operator(
+                        operator_char_to_token_type(char)
+                    ));
+                }
+
+                word.clear();
+            }
+        }
+
+        return evaluate_operator_expression(&expression)
+    }
+
+    fn evaluate_inner_value(&mut self, value: &String) -> Variable
+    {
         // Treat numbers as temporary ints
         if self.is_numeric(value) {
             Variable {
@@ -277,8 +324,7 @@ impl State
             }
         }
 
-        self.error("variable does not exist");
-        panic!();
+        self.error(format!("variable \"{}\" does not exist", name).as_str());
     }
 
     fn set_variable(&mut self, name: &String, value: &String)
@@ -299,7 +345,7 @@ impl State
     {
         let len = self.frames.len();
 
-        if self.is_numeric(name) {
+        if self.is_numeric(name) || value_contains_operator(name) {
             self.error("invalid variable name");
         }
 
