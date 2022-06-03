@@ -167,9 +167,9 @@ impl State
                     }
                 },
 
-                FunctionDeclaration { name, first_line, last_line } =>
+                FunctionDeclaration { name, first_line, last_line, .. } =>
                 {
-                    // Note function then sally on forth - TODO: decide if to allow re-defining functions
+                    // Note function then sally on forth
                     if self.innermost_frame().functions.insert(name.clone(), *first_line).is_some() {
                         self.error("function already declared");
                     }

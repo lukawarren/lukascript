@@ -1,6 +1,9 @@
 use super::lexer::Token;
 use super::lexer::TokenType;
 use super::lexer::TokenType::*;
+use super::variables::VariableType;
+use super::variables::is_token_type_valid_type;
+use super::variables::token_type_to_variable_type;
 use super::common::error;
 
 #[derive(Debug)]
@@ -15,7 +18,7 @@ pub enum Instruction
     Done,
 
     // Functions
-    FunctionDeclaration { name: String, first_line: usize, last_line: usize },
+    FunctionDeclaration { name: String, first_line: usize, last_line: usize, arguments: Vec<(String, VariableType)> },
     FunctionCall { function: String, values: Vec<String> },
 
     // Variables
@@ -68,12 +71,58 @@ pub fn parse_lines(lines: &Vec<Vec<Token>>) -> Vec<Instruction>
             instructions.push(Instruction::Done);
         }
 
-        else if tokens_contain_types(&tokens, &vec![Function, Value])
+        else if tokens_begins_with_types(&tokens, &vec![Function, Value])
         {
+            // Parse arguments, if any
+            let mut arguments = Vec::<(String, VariableType)>::new();
+            if tokens_begins_with_types(&tokens, &vec![Function, Value, LeftArrow])
+            {
+                // Remove separating pipes
+                let mut arg_tokens = tokens[3..tokens.len()].iter().collect::<Vec<&Token>>();
+                arg_tokens.retain(|token| {
+                    !matches!(token.token_type, TokenType::DoublePipe)
+                });
+
+                // Ensure valid types and non-overlapping variable names
+                let mut variable_types = Vec::<VariableType>::new();
+                let mut variable_names = Vec::<String>::new();
+                for j in 0..arg_tokens.len()
+                {
+                    if j % 2 == 0
+                    {
+                        if !is_token_type_valid_type(&arg_tokens[j].token_type) {
+                            error(format!("unknown variable type in function declaration on line {}", i + 1));
+                        }
+
+                        variable_types.push(token_type_to_variable_type(&arg_tokens[j].token_type));
+                    }
+
+                    else if j % 2 == 1
+                    {
+                        if variable_names.contains(&arg_tokens[j].string) {
+                            error(format!("duplicate variable name in function declaration on line {}", i+1));
+                        }
+
+                        variable_names.push(arg_tokens[j].string.clone());
+                    }
+                }
+
+                if variable_types.len() != variable_names.len() {
+                    error(format!("unbalanced arguments in function declaration on line {}", i+1));
+                }
+
+                // Combine into tuple
+                for j in 0..variable_types.len()
+                {
+                    arguments.push((variable_names[j].clone(), variable_types[j].clone()));
+                }
+            }
+
             instructions.push(Instruction::FunctionDeclaration {
                 name: tokens[1].string.clone(),
                 first_line: i,
-                last_line: get_corresponding_end_of_frame(lines, i)
+                last_line: get_corresponding_end_of_frame(lines, i),
+                arguments
             });
         }
 

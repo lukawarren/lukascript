@@ -1,4 +1,5 @@
 use super::common::error;
+use super::lexer::TokenType;
 use std::cmp::Ordering;
 use std::ops;
 
@@ -8,6 +9,28 @@ pub enum VariableType
     Integer(isize),
     Boolean(bool),
     Str(String)
+}
+
+pub fn is_token_type_valid_type(token_type: &TokenType) -> bool
+{
+    match token_type
+    {
+        TokenType::Int => true,
+        TokenType::Bool => true,
+        TokenType::Str => true,
+        _ => false
+    }
+}
+
+pub fn token_type_to_variable_type(token_type: &TokenType) -> VariableType
+{
+    match token_type
+    {
+        TokenType::Int => VariableType::Integer(0),
+        TokenType::Bool => VariableType::Boolean(false),
+        TokenType::Str => VariableType::Str(String::new()),
+        _ => panic!()
+    }
 }
 
 #[derive(Clone, Debug)]
