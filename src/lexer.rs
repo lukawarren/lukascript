@@ -68,7 +68,7 @@ fn get_tokens_for_line(input: &String) -> Vec<Token>
             {
                 // New token found
                 tokens.push(Token {
-                    token_type: get_token_from_word(&word, 0, 1),
+                    token_type: get_token_from_word(&word),
                     string: word.iter().collect()
                 });
 
@@ -88,42 +88,23 @@ fn get_tokens_for_line(input: &String) -> Vec<Token>
     tokens
 }
 
-fn get_token_from_word(input: &Vec<char>, pos: usize, size: usize) -> TokenType
+fn get_token_from_word(input: &Vec<char>) -> TokenType
 {
-    match input[pos]
+    match input.iter().collect::<String>().as_str()
     {
-        // Single characters
-        '=' => TokenType::Equals,
-        '*' => TokenType::Multiply,
-
-        // Multiple characters
-        _ =>
-        {
-            return match input[0..size].iter().collect::<String>().as_str()
-            {
-                "for" => TokenType::For,
-                "from" => TokenType::From,
-                "to" => TokenType::To,
-                "done" => TokenType::Done,
-                "fn" => TokenType::Function,
-                "int" => TokenType::Int,
-                "bool" => TokenType::Bool,
-                "string" => TokenType::Str,
-                "if" => TokenType::If,
-                "is" => TokenType::Is,
-                "not" => TokenType::Not,
-
-                // If none found, grow search...
-                _ =>
-                {
-                    // ...unless we've already outgrown it, in which case it's got to be a variable or a number, which we'll evaluate later
-                    if pos + 1 == input.len() {
-                        return TokenType::Value
-                    }
-
-                    get_token_from_word(input, pos + 1, size + 1)
-                }
-            }
-        }
+        "=" => TokenType::Equals,
+        "for" => TokenType::For,
+        "from" => TokenType::From,
+        "to" => TokenType::To,
+        "done" => TokenType::Done,
+        "fn" => TokenType::Function,
+        "int" => TokenType::Int,
+        "bool" => TokenType::Bool,
+        "string" => TokenType::Str,
+        "if" => TokenType::If,
+        "is" => TokenType::Is,
+        "not" => TokenType::Not,
+        "*" => TokenType::Multiply,
+        _ => TokenType::Value
     }
 }

@@ -95,8 +95,6 @@ pub fn collect_operators(tokens: &mut Vec<Token>)
 
 pub fn evaluate_operator_expression(expression: &Vec<OperatorExpression>) -> Variable
 {
-    println!("Evaluating operator expression {:#?}", expression);
-
     if let OperatorExpression::Variable(mut initial_variable) = expression[0].clone()
     {
         let mut last_was_variable = true;

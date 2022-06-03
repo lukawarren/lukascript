@@ -119,7 +119,7 @@ pub fn parse_lines(lines: &Vec<Vec<Token>>) -> Vec<Instruction>
         }
 
         else {
-            error(format!("unknown instruction on line {}", i + 1));
+            error(format!("unknown instruction on line {}:\n{:#?}", i + 1, lines[i]));
         }
     }
 
