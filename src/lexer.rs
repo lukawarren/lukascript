@@ -15,6 +15,7 @@ pub enum TokenType
     Str,
     If,
     Is,
+    Not,
     Multiply
 }
 
@@ -110,6 +111,7 @@ fn get_token_from_word(input: &Vec<char>, pos: usize, size: usize) -> TokenType
                 "string" => TokenType::Str,
                 "if" => TokenType::If,
                 "is" => TokenType::Is,
+                "not" => TokenType::Not,
 
                 // If none found, grow search...
                 _ =>

@@ -11,6 +11,7 @@ pub enum Instruction
     // Loops
     FromValueToValue { value: String, start: String, end: String },
     IfValueIsValue { left_value: String, right_value: String, last_line: usize },
+    IfValueIsNotValue { left_value: String, right_value: String, last_line: usize },
     Done,
 
     // Functions
@@ -50,6 +51,15 @@ pub fn parse_lines(lines: &Vec<Vec<Token>>) -> Vec<Instruction>
             instructions.push(Instruction::IfValueIsValue {
                 left_value: tokens[1].string.clone(),
                 right_value: tokens[3].string.clone(),
+                last_line: get_corresponding_end_of_frame(lines, i)
+            });
+        }
+
+        else if tokens_contain_types(&tokens, &vec![If, Value, Is, Not, Value])
+        {
+            instructions.push(Instruction::IfValueIsNotValue {
+                left_value: tokens[1].string.clone(),
+                right_value: tokens[4].string.clone(),
                 last_line: get_corresponding_end_of_frame(lines, i)
             });
         }

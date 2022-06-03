@@ -82,6 +82,16 @@ impl State
                     else {
                         self.line = *last_line;
                     }
+                },
+
+                IfValueIsNotValue { left_value, right_value, last_line } =>
+                {
+                    if self.evaluate_value(left_value) != self.evaluate_value(right_value) {
+                        self.add_frame(Frame::IfStatement);
+                    }
+                    else {
+                        self.line = *last_line;
+                    }
                 }
 
                 FunctionCall { function, values } =>
