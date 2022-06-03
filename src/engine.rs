@@ -268,6 +268,7 @@ impl State
         let mut expression = Vec::<OperatorExpression>::new();
         let mut word = Vec::<char>::new();
 
+        // March along, growing each accumulated "word" until an operator is found (or the string ends)
         for i in 0..value.len()
         {
             let char = value.chars().nth(i).unwrap();
