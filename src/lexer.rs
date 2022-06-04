@@ -10,9 +10,10 @@ pub enum TokenType
     To,
     Done,
     Function,
-    LeftArrow,
-    RightArrow,
+    Colon,
     DoublePipe,
+    LeftBracket,
+    RightBracket,
     Return,
     Int,
     Bool,
@@ -44,59 +45,90 @@ pub fn tokenise_lines(lines: &Vec<String>) -> Vec<Vec<Token>>
     let mut tokenised_lines = Vec::<Vec<Token>>::new();
 
     for line in lines {
-        tokenised_lines.push(get_tokens_for_line(&line));
+        tokenised_lines.push(
+            get_tokens_from_line(
+                &line.trim().to_string()
+            )
+        );
     }
 
     tokenised_lines
 }
 
-fn get_tokens_for_line(input: &String) -> Vec<Token>
+fn get_tokens_from_line(input: &String) -> Vec<Token>
 {
-    let mut characters = input.chars().collect::<Vec<char>>();
+    // There are some tokens that, if found, are definitely tokens, regardless of spaces
+    // (e.g. a bracket anywhere is always a bracket, as is a "*", but "int" might be part
+    // of a variable called "my_integer", for example.
+
     let mut tokens = Vec::<Token>::new();
-    let mut word = Vec::<char>::new();
-    let mut inside_string = false;
+    let mut word = String::new();
 
-    // The below code will miss out the last word sometimes, so as a simple fix to avoid duplicating code, it's easier to just... add another word :)
-    // TODO: fix
-    characters.push(' ');
+    // Ignore empty lines
+    if input.is_empty() { return tokens }
 
-    // March along until we find each new token (which is usually just a single word, but could also be a quote also, hence the roundabout way)
-    for i in 0..characters.len()
+    for i in 0..input.len()
     {
-        if characters[i] == '"' {
-            inside_string = !inside_string;
-        }
+        let char = input.chars().nth(i).unwrap();
+        word.push(char);
 
-        if characters[i] == ' ' && !inside_string
+        let single_found = match char
         {
+            '=' |
+            ':' |
+            '(' |
+            ')' |
+            '*' |
+            '-' => true,
+            _ => false
+        };
+
+        // If a word's just ended
+        if !single_found && (char == ' ' || i == input.len()-1)
+        {
+            if char == ' ' {
+                word.pop();
+            }
+
             if !word.is_empty()
             {
-                // New token found
                 tokens.push(Token {
-                    token_type: get_token_from_word(&word),
-                    string: word.iter().collect()
+                    token_type: token_from_string(&word),
+                    string: word.clone()
                 });
-
                 word.clear();
             }
         }
-        else { word.push(characters[i]); }
+
+        else if single_found
+        {
+            // Last character in word is actually our single token,
+            // and everything before is its own token
+            word.pop();
+            if !word.is_empty()
+            {
+                tokens.push(Token {
+                    token_type: token_from_string(&word),
+                    string: word.clone()
+                });
+            }
+
+            tokens.push(Token {
+                token_type: token_from_string(&char.to_string()),
+                string: char.to_string()
+            });
+            word.clear();
+        }
     }
 
     collect_operators(&mut tokens);
-
-    if inside_string {
-        println!("Error: unterminated string on line: {}", input);
-        std::process::exit(1);
-    }
-
+    collect_function_calls(&mut tokens);
     tokens
 }
 
-fn get_token_from_word(input: &Vec<char>) -> TokenType
+fn token_from_string(input: &String) -> TokenType
 {
-    match input.iter().collect::<String>().as_str()
+    match input.chars().collect::<String>().as_str()
     {
         "=" => TokenType::Equals,
         "for" => TokenType::For,
@@ -104,8 +136,10 @@ fn get_token_from_word(input: &Vec<char>) -> TokenType
         "to" => TokenType::To,
         "done" => TokenType::Done,
         "fn" => TokenType::Function,
-        "<-" => TokenType::LeftArrow,
+        ":" => TokenType::Colon,
         "||" => TokenType::DoublePipe,
+        "(" => TokenType::LeftBracket,
+        ")" => TokenType::RightBracket,
         "return" => TokenType::Return,
         "int" => TokenType::Int,
         "bool" => TokenType::Bool,
@@ -117,4 +151,12 @@ fn get_token_from_word(input: &Vec<char>) -> TokenType
         "-" => TokenType::Minus,
         _ => TokenType::Value
     }
+}
+
+fn collect_function_calls(tokens: &mut Vec<Token>)
+{
+    // When a function is called, in the format [value] [left bracket] [value(s)] [right bracket], collapse
+    // all these into a single value, in a similar way to how operators are dealt with.
+
+    todo!();
 }

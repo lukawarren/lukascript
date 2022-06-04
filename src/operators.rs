@@ -45,6 +45,8 @@ pub fn value_contains_operator(value: &String) -> bool
 
 pub fn tokens_contain_valid_operator(tokens: &Vec<Token>) -> bool
 {
+    if tokens.len() < 3 { return false }
+
     for i in 0..tokens.len()
     {
         if is_token_operator(&tokens[i].token_type) &&
@@ -68,9 +70,12 @@ pub fn collect_operators(tokens: &mut Vec<Token>)
 {
     if tokens_contain_valid_operator(tokens)
     {
-        for i in 1..tokens.len()
+        let mut i = 1;
+
+        while i < tokens.len()-1
         {
             if matches!(tokens[i-1].token_type, TokenType::Value) &&
+                is_token_operator(&tokens[i].token_type) &&
                 matches!(tokens[i+1].token_type, TokenType::Value)
             {
                 let right_value = tokens.remove(i + 1);
@@ -98,6 +103,8 @@ pub fn collect_operators(tokens: &mut Vec<Token>)
                     break;
                 }
             }
+
+            i += 1;
         }
 
         if tokens_contain_valid_operator(tokens) {

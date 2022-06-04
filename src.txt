@@ -1,13 +1,13 @@
-fn factorial <- int number
+fn factorial: int number
 
     if number is 1
         return 1
     done
 
-    factorial number - 1
+    factorial(number - 1)
     return number * ret
 
 done
 
-factorial 5
-print "I got " ret " and it should have been 120"
+int result = factorial(5)
+print(result, "vs", 120)

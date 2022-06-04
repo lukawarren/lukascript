@@ -76,7 +76,7 @@ pub fn parse_lines(lines: &Vec<Vec<Token>>) -> Vec<Instruction>
         {
             // Parse arguments, if any
             let mut arguments = Vec::<(String, VariableType)>::new();
-            if tokens_begins_with_types(&tokens, &vec![Function, Value, LeftArrow])
+            if tokens_begins_with_types(&tokens, &vec![Function, Value, Colon])
             {
                 // Remove separating pipes
                 let mut arg_tokens = tokens[3..tokens.len()].iter().collect::<Vec<&Token>>();
