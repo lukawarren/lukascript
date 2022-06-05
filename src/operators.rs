@@ -78,6 +78,7 @@ pub fn collect_operators(tokens: &mut Vec<Token>)
                 is_token_operator(&tokens[i].token_type) &&
                 matches!(tokens[i+1].token_type, TokenType::Value)
             {
+
                 let right_value = tokens.remove(i + 1);
                 let left_value = tokens.remove(i - 1);
 

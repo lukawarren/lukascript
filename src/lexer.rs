@@ -12,6 +12,7 @@ pub enum TokenType
     Function,
     Colon,
     DoublePipe,
+    RightArrow,
     LeftBracket,
     RightBracket,
     Return,
@@ -72,7 +73,7 @@ fn get_tokens_from_line(input: &String) -> Vec<Token>
     for i in 0..input.len()
     {
         let char = input.chars().nth(i).unwrap();
-        let single_found = is_single_token(char);
+        let single_found = is_single_token(char, input.chars().nth(i+1));
 
         // Add character to buffer, even if it's a string quote
         word.push(char);
@@ -105,7 +106,7 @@ fn get_tokens_from_line(input: &String) -> Vec<Token>
         }
 
         // If we've just run into a "single token", meaning the previous chars were a token too
-        else if single_found
+        else if single_found && !inside_string
         {
             // Last character in word is actually our single token,
             // and everything before is its own token
@@ -130,8 +131,12 @@ fn get_tokens_from_line(input: &String) -> Vec<Token>
     tokens
 }
 
-fn is_single_token(c: char) -> bool
+fn is_single_token(c: char, next_char: Option<char>) -> bool
 {
+    // We must be conscious of the next character (if there is one), because if the whole word
+    // is something like "->", then seeing a "-" character is, in this case, not actually a
+    // "single token".
+
     match c
     {
         '=' |
@@ -139,7 +144,7 @@ fn is_single_token(c: char) -> bool
         '(' |
         ')' |
         '*' |
-        '-' => true,
+        '-' => next_char.is_none() || next_char.unwrap() != '>',
         _ => false
     }
 }
@@ -156,6 +161,7 @@ fn token_from_string(input: &String) -> TokenType
         "fn" => TokenType::Function,
         ":" => TokenType::Colon,
         "||" => TokenType::DoublePipe,
+        "->" => TokenType::RightArrow,
         "(" => TokenType::LeftBracket,
         ")" => TokenType::RightBracket,
         "return" => TokenType::Return,

@@ -22,6 +22,17 @@ pub fn is_token_type_valid_type(token_type: &TokenType) -> bool
     }
 }
 
+pub fn is_str_valid_type(string: &str) -> bool
+{
+    match string
+    {
+        "int" => true,
+        "bool" => true,
+        "str" => true,
+        _ => false
+    }
+}
+
 pub fn token_type_to_variable_type(token_type: &TokenType) -> VariableType
 {
     match token_type

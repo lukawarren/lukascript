@@ -2,6 +2,7 @@ use super::parser::Instruction;
 use super::parser::Instruction::*;
 use super::variables::Variable;
 use super::variables::VariableType;
+use crate::variables::is_str_valid_type;
 use super::operators::value_contains_operator;
 use super::operators::is_char_operator;
 use super::operators::operator_char_to_token_type;
@@ -18,7 +19,7 @@ enum Frame
 {
     Root,
     ForLoop { variable: String, start_line: usize, end_value: String },
-    Function { caller_line: usize },
+    Function { caller_line: usize, target_variable: Option<String> },
     IfStatement
 }
 
@@ -47,8 +48,8 @@ impl State
         let one = Variable { variable_type: VariableType::Integer(1) };
 
         // Boolean declarations - TODO: fix
-        self.make_variable_of_type(&String::from("true"), VariableType::Boolean(true));
-        self.make_variable_of_type(&String::from("false"), VariableType::Boolean(false));
+        self.make_variable_of_type(&String::from("true"), &VariableType::Boolean(true));
+        self.make_variable_of_type(&String::from("false"), &VariableType::Boolean(false));
 
         while self.line != instructions.len()
         {
@@ -71,7 +72,7 @@ impl State
                             end_value: end.clone()
                         });
 
-                        self.make_variable_of_type(value, VariableType::Integer(0));
+                        self.make_variable_of_type(value, &VariableType::Integer(0));
                         self.set_variable(value, start);
                     }
                 },
@@ -96,7 +97,16 @@ impl State
                     }
                 }
 
-                FunctionCall { function, values } =>
+                FunctionDeclaration { name, first_line, last_line, arguments } =>
+                {
+                    // Note function then sally on forth
+                    if self.innermost_frame().functions.insert(name.clone(), (*first_line, arguments.clone())).is_some() {
+                        self.error("function already declared");
+                    }
+                    self.line = *last_line;
+                },
+
+                FunctionCall { function, values, target_variable } =>
                 {
                     // Check for user-defined functions first, then if that fails, assume it's in-built
                     let mut found_function = Option::<FunctionInfo>::default();
@@ -108,7 +118,7 @@ impl State
 
                     if found_function.is_some()
                     {
-                        self.add_frame(Frame::Function { caller_line: self.line });
+                        self.add_frame(Frame::Function { caller_line: self.line, target_variable: target_variable.clone() });
 
                         // Check argument lengths match
                         let desired_args = &found_function.as_ref().unwrap().1;
@@ -126,7 +136,7 @@ impl State
                             // have the same name, we'll accidentally use the new one in any evaluating, as may
                             // happen in recursive functions.
                             let value_evaluated_early = self.evaluate_value(&values[i]);
-                            self.make_variable_of_type(name, variable_type);
+                            self.make_variable_of_type(name, &variable_type);
                             self.get_variable(name).set(&value_evaluated_early);
                         }
 
@@ -151,34 +161,44 @@ impl State
                 Return { value } =>
                 {
                     // Search for function frame (if any)
-                    let mut line = Option::<usize>::default();
+                    let mut frame_info = Option::<(usize, Option<String>)>::default();
 
                     self.for_each_frame(|f|
                     {
-                        if line.is_none()
+                        if frame_info.is_none()
                         {
-                            match f.frame
+                            match &f.frame
                             {
-                                Frame::Function { caller_line } =>
+                                Frame::Function { caller_line, target_variable } =>
                                 {
-                                    let _ = line.insert(caller_line);
+                                    let _ = frame_info.insert((caller_line.clone(), target_variable.clone()));
                                 }
                                 _ => {}
                             }
                         }
                     });
 
-                    if line.is_some()
+                    if frame_info.is_some()
                     {
-                        // Evaluate value early, to have access to the current frame, yet place it on the one above
-                        let eval_value = self.evaluate_value(value);
+                        let target_variable = &frame_info.as_ref().unwrap().1;
+                        let line_number = frame_info.as_ref().unwrap().0;
 
-                        self.frames.pop();
+                        // Evaluate returned variable first, before we pop the frame
+                        if target_variable.is_some()
+                        {
+                            let evaluated = self.evaluate_value(value);
 
-                        self.make_variable_of_type(&String::from("ret"), VariableType::Integer(0)); // TODO: fix and do properly
-                        self.get_variable(&String::from("ret")).set(&eval_value);
-                        
-                        self.line = line.unwrap();
+                            self.frames.pop();
+                            self.make_variable_of_type(target_variable.as_ref().unwrap(), &evaluated.variable_type);
+                            self.get_variable(target_variable.as_ref().unwrap()).set(&evaluated);
+                            self.line = line_number; // Set last so error names carrying line numbers make sense
+                        }
+                        else
+                        {
+                            self.frames.pop();
+                            self.line = line_number;
+
+                        }
                     }
                     else { self.error("cannot return outside of a function"); }
                 },
@@ -209,9 +229,15 @@ impl State
                             }
                         },
 
-                        Frame::Function { caller_line } => {
+                        Frame::Function { caller_line, target_variable } => {
                             self.frames.pop();
                             self.line = caller_line;
+
+                            if target_variable.is_some()
+                            {
+                                // No value was returned, so raise error
+                                self.error("function did not return valid value")
+                            }
                         },
 
                         Frame::IfStatement => {
@@ -224,30 +250,21 @@ impl State
                     }
                 },
 
-                FunctionDeclaration { name, first_line, last_line, arguments } =>
-                {
-                    // Note function then sally on forth
-                    if self.innermost_frame().functions.insert(name.clone(), (*first_line, arguments.clone())).is_some() {
-                        self.error("function already declared");
-                    }
-                    self.line = *last_line;
-                },
-
                 IntDeclaration { name, value } =>
                 {
-                    self.make_variable_of_type(name, VariableType::Integer(0));
+                    self.make_variable_of_type(name, &VariableType::Integer(0));
                     self.set_variable(name, value);
                 },
 
                 BoolDeclaration { name, value } =>
                 {
-                    self.make_variable_of_type(name, VariableType::Boolean(false));
+                    self.make_variable_of_type(name, &VariableType::Boolean(false));
                     self.set_variable(name, value);
                 },
 
                 StringDeclaration { name, value } =>
                 {
-                    self.make_variable_of_type(name, VariableType::Str(String::new()));
+                    self.make_variable_of_type(name, &VariableType::Str(String::new()));
                     self.set_variable(name, value);
                 }
 
@@ -402,16 +419,16 @@ impl State
         self.get_variable(name).set(&evaluated);
     }
 
-    fn make_variable_of_type(&mut self, name: &String, variable_type: VariableType)
+    fn make_variable_of_type(&mut self, name: &String, variable_type: &VariableType)
     {
         let len = self.frames.len();
 
-        if self.is_numeric(name) || value_contains_operator(name) {
+        if self.is_numeric(name) || value_contains_operator(name) || is_str_valid_type(name.as_str()) {
             self.error("invalid variable name");
         }
 
         if !self.frames[len-1].variables.contains_key(name) {
-            self.frames[len-1].variables.insert(name.clone(), Variable { variable_type });
+            self.frames[len-1].variables.insert(name.clone(), Variable { variable_type: variable_type.clone() });
         }
         else {
             self.error("variable already exists");

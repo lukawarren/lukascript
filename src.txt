@@ -1,6 +1,18 @@
-fn times_three: int number
-    int result = number * 3
-    print(number " times 3 is " result)
+fn factorial: int number
+
+    if number is 1
+        return 1
+    done
+
+    factorial(number - 1) -> ret
+    return number * ret
 done
 
-times_three(7)
+fn print_factorial: int number
+
+    factorial(5) -> result
+    print(number "! = " result)
+
+done
+
+print_factorial(5)

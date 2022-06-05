@@ -19,7 +19,7 @@ pub enum Instruction
 
     // Functions
     FunctionDeclaration { name: String, first_line: usize, last_line: usize, arguments: Vec<(String, VariableType)> },
-    FunctionCall { function: String, values: Vec<String> },
+    FunctionCall { function: String, values: Vec<String>, target_variable: Option<String> },
     Return { value: String },
 
     // Variables
@@ -159,14 +159,29 @@ pub fn parse_lines(lines: &Vec<Vec<Token>>) -> Vec<Instruction>
             });
         }
 
-        else if tokens_begins_with_types(&tokens, &vec![Value, LeftBracket]) && tokens_ends_with_type(&tokens, RightBracket)
+        else if tokens_begins_with_types(&tokens, &vec![Value, LeftBracket]) &&
+                tokens_ends_with_type(&tokens, &vec![RightBracket])
         {
-            let next_tokens: Vec<String> = tokens[2..tokens.len()-1].
+            let arguments: Vec<String> = tokens[2..tokens.len()-1].
                                             iter().map(|t| t.string.clone()).collect();
 
             instructions.push(Instruction::FunctionCall {
                 function: tokens[0].string.clone(),
-                values: next_tokens.clone()
+                values: arguments.clone(),
+                target_variable: None
+            });
+        }
+
+        else if tokens_begins_with_types(&tokens, &vec![Value, LeftBracket]) &&
+                tokens_ends_with_type(&tokens, &vec![RightBracket, RightArrow, Value])
+        {
+            let arguments: Vec<String> = tokens[2..tokens.len()-3].
+                iter().map(|t| t.string.clone()).collect();
+
+            instructions.push(Instruction::FunctionCall {
+                function: tokens[0].string.clone(),
+                values: arguments.clone(),
+                target_variable: Some(tokens[tokens.len()-1].string.clone())
             });
         }
 
@@ -203,9 +218,19 @@ fn tokens_begins_with_types(line: &Vec<Token>, types: &Vec<TokenType>) -> bool
     true
 }
 
-fn tokens_ends_with_type(line: &Vec<Token>, end_type: TokenType) -> bool
+fn tokens_ends_with_type(line: &Vec<Token>, types: &Vec<TokenType>) -> bool
 {
-    line[line.len()-1].token_type == end_type
+    if line.len() < types.len() { return false }
+    let first_tested_element = line.len() - types.len();
+
+    for i in 0..types.len()
+    {
+        if line[first_tested_element + i].token_type != types[i] {
+            return false
+        }
+    }
+
+    true
 }
 
 fn get_corresponding_end_of_frame(lines: &Vec<Vec<Token>>, line: usize) -> usize
