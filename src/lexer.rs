@@ -66,17 +66,28 @@ fn get_tokens_from_line(input: &String) -> Vec<Token>
     let mut tokens = Vec::<Token>::new();
     let mut word = String::new();
     let mut inside_string = false;
+    let mut comment_reached = false;
 
     // Ignore empty lines
     if input.is_empty() { return tokens }
 
     for i in 0..input.len()
     {
+        if comment_reached { continue }
+
         let char = input.chars().nth(i).unwrap();
         let single_found = is_single_token(char, input.chars().nth(i+1));
 
         // Add character to buffer, even if it's a string quote
         word.push(char);
+
+        // Detect comments
+        if i < input.len() - 2 && char == '/' && input.chars().nth(i+1).unwrap() == '/'
+        {
+            // Still process word buffer, but don't include this character, and stop after
+            word.pop();
+            comment_reached = true;
+        }
 
         // Keep track of state
         if char == '\"' {
@@ -88,8 +99,8 @@ fn get_tokens_from_line(input: &String) -> Vec<Token>
         // If a string's on-going
         if inside_string {}
 
-        // If a string or a normal word just ended
-        if string_ended || normal_word_ended
+        // If a string or a normal word just ended, or this is the last loop iteration because we've just found a comment
+        if string_ended || normal_word_ended || comment_reached
         {
             if char == ' ' {
                 word.pop();
