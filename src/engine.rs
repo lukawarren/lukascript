@@ -133,12 +133,12 @@ impl State
                         self.line = found_function.as_ref().unwrap().0;
                     }
 
-                    // Function not found, assume part of the "standard library"
+                    // Function not found, assume part of the "standard library" (TODO: make more concrete)
                     else
                     {
                         if function == "print" {
                             for value in values {
-                                print!("{} ", self.evaluate_value(value).printed_string());
+                                print!("{}", self.evaluate_value(value).printed_string());
                             }
                             println!();
                         }

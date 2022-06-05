@@ -59,10 +59,12 @@ fn get_tokens_from_line(input: &String) -> Vec<Token>
 {
     // There are some tokens that, if found, are definitely tokens, regardless of spaces
     // (e.g. a bracket anywhere is always a bracket, as is a "*", but "int" might be part
-    // of a variable called "my_integer", for example.
+    // of a variable called "my_integer", for example. However, if we're inside a string,
+    // no new tokens may arise until the string terminates.
 
     let mut tokens = Vec::<Token>::new();
     let mut word = String::new();
+    let mut inside_string = false;
 
     // Ignore empty lines
     if input.is_empty() { return tokens }
@@ -70,21 +72,23 @@ fn get_tokens_from_line(input: &String) -> Vec<Token>
     for i in 0..input.len()
     {
         let char = input.chars().nth(i).unwrap();
+        let single_found = is_single_token(char);
+
+        // Add character to buffer, even if it's a string quote
         word.push(char);
 
-        let single_found = match char
-        {
-            '=' |
-            ':' |
-            '(' |
-            ')' |
-            '*' |
-            '-' => true,
-            _ => false
-        };
+        // Keep track of state
+        if char == '\"' {
+            inside_string = !inside_string;
+        }
+        let string_ended = char == '\"' && !inside_string;
+        let normal_word_ended = !inside_string && !single_found && (char == ' ' || i == input.len()-1);
 
-        // If a word's just ended
-        if !single_found && (char == ' ' || i == input.len()-1)
+        // If a string's on-going
+        if inside_string {}
+
+        // If a string or a normal word just ended
+        if string_ended || normal_word_ended
         {
             if char == ' ' {
                 word.pop();
@@ -100,6 +104,7 @@ fn get_tokens_from_line(input: &String) -> Vec<Token>
             }
         }
 
+        // If we've just run into a "single token", meaning the previous chars were a token too
         else if single_found
         {
             // Last character in word is actually our single token,
@@ -122,8 +127,21 @@ fn get_tokens_from_line(input: &String) -> Vec<Token>
     }
 
     collect_operators(&mut tokens);
-    collect_function_calls(&mut tokens);
     tokens
+}
+
+fn is_single_token(c: char) -> bool
+{
+    match c
+    {
+        '=' |
+        ':' |
+        '(' |
+        ')' |
+        '*' |
+        '-' => true,
+        _ => false
+    }
 }
 
 fn token_from_string(input: &String) -> TokenType
@@ -151,12 +169,4 @@ fn token_from_string(input: &String) -> TokenType
         "-" => TokenType::Minus,
         _ => TokenType::Value
     }
-}
-
-fn collect_function_calls(tokens: &mut Vec<Token>)
-{
-    // When a function is called, in the format [value] [left bracket] [value(s)] [right bracket], collapse
-    // all these into a single value, in a similar way to how operators are dealt with.
-
-    todo!();
 }

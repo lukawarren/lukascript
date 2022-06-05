@@ -159,9 +159,11 @@ pub fn parse_lines(lines: &Vec<Vec<Token>>) -> Vec<Instruction>
             });
         }
 
-        else if tokens_begins_with_types(&tokens, &vec![Value])
+        else if tokens_begins_with_types(&tokens, &vec![Value, LeftBracket]) && tokens_ends_with_type(&tokens, RightBracket)
         {
-            let next_tokens: Vec<String> = tokens[1..tokens.len()].iter().map(|t| t.string.clone()).collect();
+            let next_tokens: Vec<String> = tokens[2..tokens.len()-1].
+                                            iter().map(|t| t.string.clone()).collect();
+
             instructions.push(Instruction::FunctionCall {
                 function: tokens[0].string.clone(),
                 values: next_tokens.clone()
@@ -199,6 +201,11 @@ fn tokens_begins_with_types(line: &Vec<Token>, types: &Vec<TokenType>) -> bool
         if line[i].token_type != types[i] { return false }
     }
     true
+}
+
+fn tokens_ends_with_type(line: &Vec<Token>, end_type: TokenType) -> bool
+{
+    line[line.len()-1].token_type == end_type
 }
 
 fn get_corresponding_end_of_frame(lines: &Vec<Vec<Token>>, line: usize) -> usize

@@ -1,13 +1,6 @@
-fn factorial: int number
-
-    if number is 1
-        return 1
-    done
-
-    factorial(number - 1)
-    return number * ret
-
+fn times_three: int number
+    int result = number * 3
+    print(number " times 3 is " result)
 done
 
-int result = factorial(5)
-print(result, "vs", 120)
+times_three(7)
