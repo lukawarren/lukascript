@@ -6,17 +6,14 @@ fn factorial: int number
 
     factorial(number - 1) -> ret
     return number * ret
+
 done
 
-fn print_factorial: int number
 
-    factorial(5) -> result
+for _ from 0 to 5
+
+    input("Enter a number: ") -> number
+    factorial(number) -> result
     print(number "! = " result)
 
 done
-
-print_factorial(5)
-
-input("Enter a number: ") -> number
-int number_as_int = number
-print("Your number was " number_as_int)

@@ -31,6 +31,15 @@ struct FrameContext
     functions: HashMap<String, FunctionInfo> // beginning line, arguments
 }
 
+impl FrameContext
+{
+    pub fn clear(&mut self)
+    {
+        self.variables.clear();
+        self.functions.clear();
+    }
+}
+
 #[derive(Default)]
 pub struct State
 {
@@ -111,7 +120,7 @@ impl State
                 {
                     // Check for user-defined functions first, then if that fails, assume it's in-built
                     let mut found_function = Option::<FunctionInfo>::default();
-                    self.for_each_frame(|frame| {
+                    self.for_each_frame(|frame, _| {
                         if found_function.is_none() && frame.functions.contains_key(function) {
                             let _ = found_function.insert(frame.functions.get(function).unwrap().clone());
                         }
@@ -176,16 +185,18 @@ impl State
                 {
                     // Search for function frame (if any)
                     let mut frame_info = Option::<(usize, Option<String>)>::default();
+                    let mut frame_index = Option::<usize>::default();
 
-                    self.for_each_frame(|f|
+                    self.for_each_frame(|frame, index|
                     {
                         if frame_info.is_none()
                         {
-                            match &f.frame
+                            match &frame.frame
                             {
                                 Frame::Function { caller_line, target_variable } =>
                                 {
                                     let _ = frame_info.insert((caller_line.clone(), target_variable.clone()));
+                                    let _ = frame_index.insert(index);
                                 }
                                 _ => {}
                             }
@@ -194,6 +205,10 @@ impl State
 
                     if frame_info.is_some()
                     {
+                        // We can't just pop the current frame off because we may be returning from a function,
+                        // but within an if statement, for example, so instead we need to put potentially more
+                        // than once!
+
                         let target_variable = &frame_info.as_ref().unwrap().1;
                         let line_number = frame_info.as_ref().unwrap().0;
 
@@ -202,16 +217,21 @@ impl State
                         {
                             let evaluated = self.evaluate_value(value);
 
-                            self.frames.pop();
+                            for _ in 0..(self.frames.len()-frame_index.unwrap()) {
+                                self.frames.pop();
+                            }
+
                             self.make_variable_of_type(target_variable.as_ref().unwrap(), &evaluated.variable_type);
                             self.get_variable(target_variable.as_ref().unwrap()).set(&evaluated);
                             self.line = line_number; // Set last so error names carrying line numbers make sense
                         }
                         else
                         {
-                            self.frames.pop();
-                            self.line = line_number;
+                            for _ in 0..(self.frames.len()-frame_index.unwrap()) {
+                                self.frames.pop();
+                            }
 
+                            self.line = line_number;
                         }
                     }
                     else { self.error("cannot return outside of a function"); }
@@ -237,21 +257,26 @@ impl State
                             }
                             else
                             {
-                                // Loop back
+                                // Loop back, but start with (essentially) a new frame
                                 *self.get_variable(&variable) += one.clone();
+                                let variable_backup = self.get_variable(&variable).clone();
+                                self.innermost_frame().clear();
+                                self.innermost_frame().variables.insert(variable, variable_backup);
                                 self.line = start_line;
                             }
                         },
 
-                        Frame::Function { caller_line, target_variable } => {
+                        Frame::Function { caller_line, target_variable } =>
+                        {
                             self.frames.pop();
-                            self.line = caller_line;
 
                             if target_variable.is_some()
                             {
                                 // No value was returned, so raise error
                                 self.error("function did not return valid value")
                             }
+
+                            self.line = caller_line;
                         },
 
                         Frame::IfStatement => {
@@ -340,13 +365,13 @@ impl State
         });
     }
 
-    fn for_each_frame<F: FnMut(&FrameContext)>(&self, mut f: F)
+    fn for_each_frame<F: FnMut(&FrameContext, usize)>(&self, mut f: F)
     {
         // Go from inner-most frame to root (i.e. reversed)
         for i in 1..=self.frames.len()
         {
             let index = self.frames.len() - i;
-            f(&self.frames[index]);
+            f(&self.frames[index], index);
         }
     }
 
