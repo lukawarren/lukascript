@@ -266,20 +266,26 @@ impl State
 
                 IntDeclaration { name, value } =>
                 {
+                    // Evaluate first, before the variable is created, to prevent stuff like "int foo = foo"
+                    let evaluated = self.evaluate_value(&value);
                     self.make_variable_of_type(name, &VariableType::Integer(0));
-                    self.set_variable(name, value);
+                    self.get_variable(name).set(&evaluated);
                 },
 
                 BoolDeclaration { name, value } =>
                 {
+                    // Evaluate first, before the variable is created, to prevent stuff like "int foo = foo"
+                    let evaluated = self.evaluate_value(&value);
                     self.make_variable_of_type(name, &VariableType::Boolean(false));
-                    self.set_variable(name, value);
+                    self.get_variable(name).set(&evaluated);
                 },
 
                 StringDeclaration { name, value } =>
                 {
+                    // Evaluate first, before the variable is created, to prevent stuff like "int foo = foo"
+                    let evaluated = self.evaluate_value(&value);
                     self.make_variable_of_type(name, &VariableType::Str(String::new()));
-                    self.set_variable(name, value);
+                    self.get_variable(name).set(&evaluated);
                 }
 
                 Assignment { name, value } => { self.set_variable(name, value); }
