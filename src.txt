@@ -16,3 +16,11 @@ fn print_factorial: int number
 done
 
 print_factorial(5)
+
+// TODO: this should fail
+int jeff = jeff
+print(jeff)
+
+input("Enter a number: ") -> number
+int number_as_int = number
+print("Your number was " number_as_int)

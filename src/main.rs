@@ -4,6 +4,7 @@ pub mod engine;
 pub mod variables;
 pub mod common;
 pub mod operators;
+pub mod stdlib;
 
 use std::fs;
 use std::env;

@@ -8,6 +8,7 @@ use super::operators::is_char_operator;
 use super::operators::operator_char_to_token_type;
 use super::operators::evaluate_operator_expression;
 use super::operators::OperatorExpression;
+use super::stdlib::stdlib_function;
 use super::common::error;
 
 use std::collections::HashMap;
@@ -143,14 +144,27 @@ impl State
                         self.line = found_function.as_ref().unwrap().0;
                     }
 
-                    // Function not found, assume part of the "standard library" (TODO: make more concrete)
+                    // Function not found, assume part of the "standard library"
                     else
                     {
-                        if function == "print" {
-                            for value in values {
-                                print!("{}", self.evaluate_value(value).printed_string());
+                        // Evaluate arguments first
+                        let arguments = values.iter().map(|v| {
+                            self.evaluate_value(v)
+                        }).collect();
+
+                        // Run function (if any)
+                        let stdlib_result = stdlib_function(function.as_str(), &arguments);
+                        let stdlib_did_run = stdlib_result.0;
+                        let stdlib_return = stdlib_result.1;
+
+                        if stdlib_did_run
+                        {
+                            // Standard library function was found, set target variable if need be
+                            if target_variable.is_some() && stdlib_return.is_some()
+                            {
+                                self.make_variable_of_type(target_variable.as_ref().unwrap(), &stdlib_return.as_ref().unwrap().variable_type);
+                                self.get_variable(&target_variable.as_ref().unwrap()).set(&stdlib_return.unwrap());
                             }
-                            println!();
                         }
                         else {
                             self.error("unknown function");
