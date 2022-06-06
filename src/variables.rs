@@ -123,7 +123,7 @@ impl Variable
         }
     }
 
-    fn as_integer(&self) -> isize
+    pub fn as_integer(&self) -> isize
     {
         match &self.variable_type
         {

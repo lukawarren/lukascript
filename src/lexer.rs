@@ -23,7 +23,9 @@ pub enum TokenType
     Is,
     Not,
     Multiply,
-    Minus
+    Minus,
+    LessThan,
+    GreaterThan
 }
 
 #[derive(Debug)]
@@ -156,6 +158,8 @@ fn is_single_token(c: char, next_char: Option<char>) -> bool
         ')' |
         '*' |
         '-' => next_char.is_none() || next_char.unwrap() != '>',
+        '<' |
+        '>' |
         _ => false
     }
 }
@@ -184,6 +188,8 @@ fn token_from_string(input: &String) -> TokenType
         "not" => TokenType::Not,
         "*" => TokenType::Multiply,
         "-" => TokenType::Minus,
+        "<" => TokenType::LessThan,
+        ">" => TokenType::GreaterThan,
         _ => TokenType::Value
     }
 }

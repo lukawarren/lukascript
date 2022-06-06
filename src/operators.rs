@@ -1,6 +1,7 @@
 use super::lexer::Token;
 use super::lexer::TokenType;
 use super::variables::Variable;
+use super::variables::VariableType;
 
 #[derive(Debug, Clone)]
 pub enum OperatorExpression
@@ -15,6 +16,8 @@ pub fn operator_char_to_token_type(c: char) -> TokenType
     {
         '*' => TokenType::Multiply,
         '-' => TokenType::Minus,
+        '<' => TokenType::LessThan,
+        '>' => TokenType::GreaterThan,
         _ => TokenType::Value
     }
 }
@@ -25,6 +28,8 @@ fn is_token_operator(token_type: &TokenType) -> bool
     {
         TokenType::Multiply => true,
         TokenType::Minus => true,
+        TokenType::LessThan => true,
+        TokenType::GreaterThan => true,
         _ => false
     }
 }
@@ -82,27 +87,19 @@ pub fn collect_operators(tokens: &mut Vec<Token>)
                 let right_value = tokens.remove(i + 1);
                 let left_value = tokens.remove(i - 1);
 
-                if matches!(tokens[i-1].token_type, TokenType::Multiply)
+                let token = |c|
                 {
-                    tokens[i - 1] = Token
+                    Token
                     {
                         token_type: TokenType::Value,
-                        string: format!("{}*{}", left_value.string, right_value.string)
-                    };
+                        string: format!("{}{}{}", left_value.string, c, right_value.string)
+                    }
+                };
 
-                    break;
-                }
-
-                else if matches!(tokens[i-1].token_type, TokenType::Minus)
-                {
-                    tokens[i - 1] = Token
-                    {
-                        token_type: TokenType::Value,
-                        string: format!("{}-{}", left_value.string, right_value.string)
-                    };
-
-                    break;
-                }
+                     if matches!(tokens[i-1].token_type, TokenType::Multiply)    { tokens[i - 1] = token('*'); break; }
+                else if matches!(tokens[i-1].token_type, TokenType::Minus)       { tokens[i - 1] = token('-'); break; }
+                else if matches!(tokens[i-1].token_type, TokenType::LessThan)    { tokens[i - 1] = token('<'); break; }
+                else if matches!(tokens[i-1].token_type, TokenType::GreaterThan) { tokens[i - 1] = token('>'); break; }
             }
 
             i += 1;
@@ -147,6 +144,24 @@ pub fn evaluate_operator_expression(expression: &Vec<OperatorExpression>) -> Var
                         TokenType::Minus =>
                         {
                             initial_variable -= variable;
+                        },
+
+                        TokenType::LessThan =>
+                        {
+                            initial_variable = Variable {
+                                variable_type: VariableType::Boolean(
+                                    initial_variable < variable
+                                )
+                            }
+                        },
+
+                        TokenType::GreaterThan =>
+                        {
+                            initial_variable = Variable {
+                                variable_type: VariableType::Boolean(
+                                    initial_variable > variable
+                                )
+                            }
                         },
 
                         _ => { todo!(); }

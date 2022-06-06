@@ -87,6 +87,16 @@ impl State
                     }
                 },
 
+                IfValue { left_value, last_line } =>
+                {
+                    if self.evaluate_value(left_value).as_integer() != 0 {
+                        self.add_frame(Frame::IfStatement);
+                    }
+                    else {
+                        self.line = *last_line;
+                    }
+                },
+
                 IfValueIsValue { left_value, right_value, last_line } =>
                 {
                     if self.evaluate_value(left_value) == self.evaluate_value(right_value) {

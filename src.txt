@@ -1,5 +1,10 @@
 fn factorial: int number
 
+    // Check bounds first
+    if number > 10
+        return 0
+    done
+
     if number is 1
         return 1
     done
