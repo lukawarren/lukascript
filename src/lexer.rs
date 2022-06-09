@@ -13,19 +13,20 @@ pub enum TokenType
     Colon,
     DoublePipe,
     RightArrow,
-    LeftBracket,
-    RightBracket,
     Return,
     Int,
     Bool,
     Str,
+    Array,
     If,
     Is,
     Not,
     Multiply,
     Minus,
     LessThan,
-    GreaterThan
+    GreaterThan,
+    LeftBracket,
+    RightBracket
 }
 
 #[derive(Debug)]
@@ -183,6 +184,7 @@ fn token_from_string(input: &String) -> TokenType
         "int" => TokenType::Int,
         "bool" => TokenType::Bool,
         "string" => TokenType::Str,
+        "array" => TokenType::Array,
         "if" => TokenType::If,
         "is" => TokenType::Is,
         "not" => TokenType::Not,

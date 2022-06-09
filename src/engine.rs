@@ -28,7 +28,8 @@ struct FrameContext
 {
     frame: Frame,
     variables: HashMap<String, Variable>,
-    functions: HashMap<String, FunctionInfo> // beginning line, arguments
+    functions: HashMap<String, FunctionInfo>, // beginning line, arguments
+    arrays: HashMap<String, Vec<Variable>>
 }
 
 impl FrameContext
@@ -321,7 +322,16 @@ impl State
                     let evaluated = self.evaluate_value(&value);
                     self.make_variable_of_type(name, &VariableType::Str(String::new()));
                     self.get_variable(name).set(&evaluated);
-                }
+                },
+
+                ArrayDeclaration { name } =>
+                {
+                    if self.innermost_frame().arrays.insert(name.clone(), Vec::<Variable>::new()).is_some()
+                    {
+                        // Array of same name already existed
+                        self.error("array already exists with specified name");
+                    }
+                },
 
                 Assignment { name, value } => { self.set_variable(name, value); }
 
@@ -340,6 +350,12 @@ impl State
             {
                 for _ in 0..i { print!("    "); }
                 println!("{}: {:?}", variable.0, variable.1.variable_type);
+            }
+
+            for (name, array) in &self.frames[i].arrays
+            {
+                for _ in 0..i { print!("    "); }
+                println!("{}: {:#?}", name, array);
             }
         }
     }
@@ -371,7 +387,8 @@ impl State
         self.frames.push(FrameContext {
             frame,
             variables: HashMap::<String, Variable>::new(),
-            functions: HashMap::<String, FunctionInfo>::new()
+            functions: HashMap::<String, FunctionInfo>::new(),
+            arrays: HashMap::<String, Vec<Variable>>::new()
         });
     }
 
@@ -459,12 +476,52 @@ impl State
         {
             let index = self.frames.len() - i;
 
-            if self.frames[index].variables.contains_key(name) {
+            // Arrays - TODO: cache index, etc outside of loop
+            if name.contains("[") && name.contains("]") && name.len() >= 3
+            {
+                // For now, do not support "embedding" arrays (e.g. foo[foo[0]] - TODO: fix :)
+                if name.matches('[').collect::<Vec<&str>>().len() > 1 ||
+                    name.matches(']').collect::<Vec<&str>>().len() > 1 {
+                    self.error("embedded indexing is not supported");
+                }
+
+                if name.find("]").unwrap() > name.find("[").unwrap() + 1
+                {
+                    let index_begin = name.find("[").unwrap() + 1;
+                    let index_end = name.find("]").unwrap();
+
+                    let array_name = &name[0..index_begin-1];
+                    let array_index = self.evaluate_value(&name[index_begin..index_end].to_string())
+                                .as_integer() as usize;
+
+                    if self.frames[index].arrays.contains_key(array_name)
+                    {
+                        let array = self.frames[index].arrays.get_mut(array_name).unwrap();
+
+                        // If element exists...
+                        return if array.len() > array_index {
+                            &mut array[array_index]
+                        }
+
+                        // ...else create it (since this function's callers do not distinguish between using
+                        // this for both setting and getting from arrays, and it makes the language more
+                        // convenient to use... I suppose)
+                        else {
+                            array.resize(array_index + 1, Variable {
+                                variable_type: VariableType::Integer(0)
+                            });
+                            &mut array[array_index]
+                        }
+                    }
+                }
+            }
+
+            // Normal variables
+            else if self.frames[index].variables.contains_key(name) {
                 return self.frames[index].variables.get_mut(name).unwrap();
             }
         }
 
-        self.print_variables();
         self.error(format!("variable \"{}\" does not exist", name).as_str());
     }
 
@@ -478,12 +535,20 @@ impl State
     {
         let len = self.frames.len();
 
-        if self.is_numeric(name) || value_contains_operator(name) || is_str_valid_type(name.as_str()) {
+        if self.is_numeric(name) ||
+            value_contains_operator(name) ||
+            is_str_valid_type(name.as_str()) ||
+            name.contains("[") ||
+            name.contains("]")
+        {
             self.error("invalid variable name");
         }
 
-        if !self.frames[len-1].variables.contains_key(name) {
-            self.frames[len-1].variables.insert(name.clone(), Variable { variable_type: variable_type.clone() });
+        if !self.frames[len-1].variables.contains_key(name)
+        {
+            self.frames[len-1].variables.insert(name.clone(), Variable {
+                variable_type: variable_type.clone()
+            });
         }
         else {
             self.error("variable already exists");

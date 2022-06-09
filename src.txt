@@ -1,3 +1,5 @@
+array results
+
 fn factorial: int number
 
     // Check bounds first
@@ -14,11 +16,13 @@ fn factorial: int number
 
 done
 
-
-for _ from 0 to 5
-
+// Store inputs in array
+for i from 0 to 5
     input("Enter a number: ") -> number
-    factorial(number) -> result
-    print(number "! = " result)
+    results[i] = number
+done
 
+// Print results out in a row
+for i from 0 to 5
+    print(i "! = " results[i])
 done

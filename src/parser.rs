@@ -27,6 +27,7 @@ pub enum Instruction
     IntDeclaration { name: String, value: String },
     BoolDeclaration { name: String, value: String },
     StringDeclaration { name: String, value: String },
+    ArrayDeclaration { name: String },
     Assignment { name: String, value: String }
 }
 
@@ -157,6 +158,13 @@ pub fn parse_lines(lines: &Vec<Vec<Token>>) -> Vec<Instruction>
             instructions.push(Instruction::StringDeclaration {
                 name: tokens[1].string.clone(),
                 value: tokens[3].string.clone()
+            });
+        }
+
+        else if tokens_contain_types(&tokens, &vec![Array, Value])
+        {
+            instructions.push(Instruction::ArrayDeclaration {
+                name: tokens[1].string.clone()
             });
         }
 
