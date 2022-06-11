@@ -182,6 +182,7 @@ impl State
                             // Standard library function was found, set target variable if need be
                             if target_variable.is_some() && stdlib_return.is_some()
                             {
+                                println!("{:#?}", stdlib_return.as_ref().unwrap().variable_type);
                                 self.make_variable_of_type(target_variable.as_ref().unwrap(), &stdlib_return.as_ref().unwrap().variable_type);
                                 self.get_variable(&target_variable.as_ref().unwrap()).set(&stdlib_return.unwrap());
                             }
@@ -506,9 +507,13 @@ impl State
                         // ...else create it (since this function's callers do not distinguish between using
                         // this for both setting and getting from arrays, and it makes the language more
                         // convenient to use... I suppose)
-                        else {
+                        else
+                        {
+                            // Use string as the default because that way, it can adopt any value, whereas
+                            // something like an integer could not. E.g. the following would not work:
+                            // foo[i] (of type int) = "hello"
                             array.resize(array_index + 1, Variable {
-                                variable_type: VariableType::Integer(0)
+                                variable_type: VariableType::Str(String::new())
                             });
                             &mut array[array_index]
                         }
